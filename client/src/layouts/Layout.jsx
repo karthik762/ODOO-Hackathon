@@ -1,75 +1,41 @@
 import Sidebar from '../components/Sidebar';
-import { useAuth } from '../context/AuthContext';
+import { TopNavbar } from '../components/TopNavbar';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
 /**
  * Layout Container
- * Integrates Sidebar navigation with main page panels and headers.
+ * Integrates Sidebar navigation with TopNavbar and main page content with animations.
  */
 const Layout = ({ children }) => {
-  const { logout } = useAuth();
+  const location = useLocation();
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      width: '100vw',
-      background: 'var(--bg)',
-      overflow: 'hidden'
-    }}>
-      {/* Sidebar */}
+    <div className="flex h-screen w-screen bg-background overflow-hidden">
+      {/* Sidebar - fixed left */}
       <Sidebar />
 
-      {/* Main panel container */}
-      <div style={{
-        flexGrow: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        boxSizing: 'border-box',
-        overflow: 'hidden'
-      }}>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Top Header navbar */}
-        <header style={{
-          height: '70px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          padding: '0 32px',
-          background: 'var(--code-bg)',
-          boxSizing: 'border-box',
-          width: '100%'
-        }}>
-          <button
-            onClick={logout}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              color: 'var(--text-h)',
-              padding: '8px 16px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.background = 'var(--bg)'}
-            onMouseOut={(e) => e.target.style.background = 'transparent'}
-          >
-            Logout
-          </button>
-        </header>
+        <TopNavbar />
 
-        {/* Main scrollable section */}
-        <main style={{
-          flexGrow: 1,
-          padding: '32px',
-          overflowY: 'auto',
-          boxSizing: 'border-box',
-          background: 'var(--bg)',
-          width: '100%'
-        }}>
-          {children}
+        {/* Scrollable Page Content */}
+        <main className="flex-1 overflow-y-auto bg-background p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto h-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="h-full"
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </main>
       </div>
     </div>

@@ -3,12 +3,18 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import BookingForm from '../components/BookingForm';
 import BookingCalendar from '../components/BookingCalendar';
+import { PageHeader } from '../components/common/PageHeader';
+import { EmptyState } from '../components/common/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Calendar as CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-/**
- * Bookings Directory Page
- * Coordinates calendar schedulers, historical booking tables, and conflict checks.
- */
-const Bookings = () => {
+export default function Bookings() {
   const { user } = useAuth();
   const isPrivileged = user?.role === 'Admin' || user?.role === 'AssetManager';
 
@@ -16,15 +22,10 @@ const Bookings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Tab switch
-  const [activeTab, setActiveTab] = useState('schedule');
-
-  // Form Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  // Cancel and Delete confirms
   const [cancelConfirmId, setCancelConfirmId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
@@ -37,6 +38,7 @@ const Bookings = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch bookings list');
+      toast.error('Failed to fetch bookings');
     } finally {
       setLoading(false);
     }
@@ -51,16 +53,13 @@ const Bookings = () => {
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
   const handleCreateBooking = async (formData) => {
     setFormLoading(true);
     setFormError(null);
     try {
       const res = await api.post('/bookings', formData);
       if (res.data.success) {
+        toast.success('Resource booked successfully');
         setIsModalOpen(false);
         fetchBookings();
       }
@@ -75,11 +74,13 @@ const Bookings = () => {
     try {
       const res = await api.patch(`/bookings/${id}/cancel`);
       if (res.data.success) {
+        toast.success('Booking cancelled');
         setCancelConfirmId(null);
         fetchBookings();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Cancel operation failed');
+      toast.error(err.response?.data?.message || 'Cancel operation failed');
+    } finally {
       setCancelConfirmId(null);
     }
   };
@@ -88,344 +89,191 @@ const Bookings = () => {
     try {
       const res = await api.delete(`/bookings/${id}`);
       if (res.data.success) {
+        toast.success('Booking deleted');
         setDeleteConfirmId(null);
         fetchBookings();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete operation failed');
+      toast.error(err.response?.data?.message || 'Delete operation failed');
+    } finally {
       setDeleteConfirmId(null);
     }
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      {/* Header bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div style={{ textAlign: 'left' }}>
-          <h2 style={{ margin: 0, color: 'var(--text-h)', fontWeight: '800' }}>Resource Reservations</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text)', fontSize: '14px' }}>
-            Reserve Meeting Rooms, Vehicles, and Projector devices without booking conflicts
-          </p>
-        </div>
-        <button
-          onClick={handleOpenBooking}
-          className="counter"
-          style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '14px', border: 'none', borderRadius: '6px' }}
-        >
-          Book Resource
-        </button>
-      </div>
+    <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+      <PageHeader 
+        title="Resource Reservations" 
+        description="Reserve Meeting Rooms, Vehicles, and Projector devices without booking conflicts."
+        actions={
+          <Button onClick={handleOpenBooking} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Book Resource
+          </Button>
+        }
+      />
 
-      {error && (
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.1)', 
-          border: '1px solid rgba(239, 68, 68, 0.3)', 
-          color: '#ef4444', 
-          padding: '12px', 
-          borderRadius: '8px', 
-          marginBottom: '20px', 
-          fontSize: '13px' 
-        }}>
-          {error}
-        </div>
-      )}
+      <Tabs defaultValue="schedule" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="schedule">Resource Schedule</TabsTrigger>
+          <TabsTrigger value="history">Booking History List</TabsTrigger>
+        </TabsList>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border)' }}>
-        <button
-          onClick={() => setActiveTab('schedule')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'schedule' ? '2px solid var(--accent)' : '2px solid transparent',
-            color: activeTab === 'schedule' ? 'var(--accent)' : 'var(--text)',
-            padding: '10px 20px',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '600',
-            transition: 'all 0.2s'
-          }}
-        >
-          Resource Schedule
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'history' ? '2px solid var(--accent)' : '2px solid transparent',
-            color: activeTab === 'history' ? 'var(--accent)' : 'var(--text)',
-            padding: '10px 20px',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '600',
-            transition: 'all 0.2s'
-          }}
-        >
-          Booking History List
-        </button>
-      </div>
+        <TabsContent value="schedule" className="space-y-4">
+          {loading ? (
+            <div className="p-8 space-y-4 bg-card border rounded-lg">
+              <Skeleton className="h-[400px] w-full" />
+            </div>
+          ) : (
+            <div className="bg-card border rounded-lg shadow-sm p-4">
+              <BookingCalendar bookings={bookings} />
+            </div>
+          )}
+        </TabsContent>
 
-      {/* Main timeline listing */}
-      {loading ? (
-        <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text)' }}>
-          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.5s infinite', margin: '0 auto 12px' }}></div>
-          Loading reservations...
-        </div>
-      ) : activeTab === 'schedule' ? (
-        <BookingCalendar bookings={bookings} />
-      ) : bookings.length === 0 ? (
-        <div style={{ padding: '40px', color: 'var(--text)', background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-          No reservations found.
-        </div>
-      ) : (
-        <div style={{
-          background: 'var(--code-bg)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: 'var(--shadow)'
-        }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.05)' }}>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Resource / Asset</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Duration</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Booked By</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Purpose</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Status</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((b) => {
-                  const isOwner = b.bookedBy?._id === user?._id;
-                  const canCancel = b.status === 'Approved' && (isOwner || isPrivileged);
-                  const canDelete = isPrivileged;
+        <TabsContent value="history" className="space-y-4">
+          <div className="bg-card border rounded-lg shadow-sm overflow-hidden">
+            {loading ? (
+              <div className="p-8 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : bookings.length === 0 ? (
+              <EmptyState 
+                icon={<CalendarIcon className="w-8 h-8" />}
+                title="No reservations found"
+                description="There are currently no bookings in the system."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Resource / Asset</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Booked By</TableHead>
+                      <TableHead>Purpose</TableHead>
+                      <TableHead className="w-[100px]">Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bookings.map((b) => {
+                      const isOwner = b.bookedBy?._id === user?._id;
+                      const canCancel = b.status === 'Approved' && (isOwner || isPrivileged);
+                      const canDelete = isPrivileged;
 
-                  return (
-                    <tr key={b._id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontWeight: 'bold', color: 'var(--text-h)' }}>{b.asset?.name}</div>
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 'bold' }}>
-                          {b.asset?.category?.name || 'Asset'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 20px', color: 'var(--text)' }}>
-                        <div><strong>Start:</strong> {new Date(b.startDate).toLocaleString()}</div>
-                        <div><strong>End:</strong> {new Date(b.endDate).toLocaleString()}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px', color: 'var(--text)' }}>
-                        <div>{b.bookedBy?.name}</div>
-                        <div style={{ fontSize: '11px', opacity: 0.8 }}>{b.bookedBy?.email}</div>
-                      </td>
-                      <td style={{ padding: '16px 20px', color: 'var(--text)', maxWidth: '200px' }}>{b.purpose}</td>
-                      <td style={{ padding: '16px 20px' }}>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          background: b.status === 'Approved' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          color: b.status === 'Approved' ? '#22c55e' : '#ef4444',
-                          border: b.status === 'Approved' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
-                        }}>
-                          {b.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          {canCancel && (
-                            <button
-                              onClick={() => setCancelConfirmId(b._id)}
-                              style={{ 
-                                background: 'rgba(239, 68, 68, 0.1)', 
-                                border: '1px solid rgba(239, 68, 68, 0.3)', 
-                                borderRadius: '4px', 
-                                padding: '4px 10px', 
-                                fontSize: '12px', 
-                                color: '#ef4444', 
-                                cursor: 'pointer', 
-                                fontWeight: '600' 
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              onClick={() => setDeleteConfirmId(b._id)}
-                              style={{ 
-                                background: 'transparent', 
-                                border: '1px solid var(--border)', 
-                                borderRadius: '4px', 
-                                padding: '4px 10px', 
-                                fontSize: '12px', 
-                                color: 'var(--text-h)', 
-                                cursor: 'pointer', 
-                                fontWeight: '600' 
-                              }}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      return (
+                        <TableRow key={b._id} className="group">
+                          <TableCell>
+                            <div className="font-medium">{b.asset?.name}</div>
+                            <div className="text-xs font-semibold text-primary uppercase tracking-wider">
+                              {b.asset?.category?.name || 'Asset'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                            <div><span className="font-medium text-foreground">Start:</span> {new Date(b.startDate).toLocaleString()}</div>
+                            <div><span className="font-medium text-foreground">End:</span> {new Date(b.endDate).toLocaleString()}</div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            <div className="font-medium text-foreground">{b.bookedBy?.name}</div>
+                            <div className="text-xs">{b.bookedBy?.email}</div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                            {b.purpose}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                              b.status === 'Approved' 
+                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                                : 'bg-destructive/10 text-destructive border-destructive/20'
+                            }`}>
+                              {b.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {canCancel && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setCancelConfirmId(b._id)}
+                                >
+                                  <X className="w-4 h-4 mr-1" /> Cancel
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setDeleteConfirmId(b._id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
 
-      {/* CREATE BOOKING MODAL */}
-      {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: 'var(--shadow)',
-            animation: 'scaleUp 0.2s ease',
-            position: 'relative'
-          }}>
-            <button
-              onClick={handleCloseModal}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-h)',
-                fontSize: '20px',
-                cursor: 'pointer'
-              }}
-            >
-              &times;
-            </button>
-            <h3 style={{ margin: '0 0 20px', color: 'var(--text-h)', fontSize: '22px', fontWeight: '800', textAlign: 'left' }}>
-              Book Asset Resource
-            </h3>
-            
-            <BookingForm onSubmit={handleCreateBooking} loading={formLoading} error={formError} />
-          </div>
-        </div>
-      )}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Book Asset Resource</DialogTitle>
+          </DialogHeader>
+          <BookingForm onSubmit={handleCreateBooking} loading={formLoading} error={formError} />
+        </DialogContent>
+      </Dialog>
 
-      {/* CANCEL CONFIRM DIALOG */}
-      {cancelConfirmId && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 101
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90%',
-            maxWidth: '400px',
-            boxShadow: 'var(--shadow)',
-            textAlign: 'center'
-          }}>
-            <h3 style={{ margin: '0 0 12px', color: 'var(--text-h)', fontSize: '20px', fontWeight: '800' }}>Confirm Cancellation</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '24px', lineHeight: '1.5' }}>
+      <AlertDialog open={!!cancelConfirmId} onOpenChange={(open) => !open && setCancelConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Cancellation</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure you want to cancel this resource booking? The time slot will be made immediately available.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                onClick={() => setCancelConfirmId(null)}
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-h)', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                Go Back
-              </button>
-              <button
-                onClick={() => handleCancelBooking(cancelConfirmId)}
-                style={{ padding: '8px 20px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                Yes, Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go Back</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => handleCancelBooking(cancelConfirmId)} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      {/* DELETE CONFIRM DIALOG */}
-      {deleteConfirmId && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 101
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90%',
-            maxWidth: '400px',
-            boxShadow: 'var(--shadow)',
-            textAlign: 'center'
-          }}>
-            <h3 style={{ margin: '0 0 12px', color: 'var(--text-h)', fontSize: '20px', fontWeight: '800' }}>Confirm Delete</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '24px', lineHeight: '1.5' }}>
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure you want to delete this booking log from records? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-h)', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteBooking(deleteConfirmId)}
-                style={{ padding: '8px 20px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => handleDeleteBooking(deleteConfirmId)} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
-
-export default Bookings;
+}

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-/**
- * Booking Form Component
- * Form to create reservations on shared meeting rooms, vehicles, or equipment.
- */
-const BookingForm = ({ onSubmit, loading, error }) => {
+export default function BookingForm({ onSubmit, loading, error }) {
   const [formData, setFormData] = useState({
     asset: '',
     startDate: '',
@@ -15,13 +16,19 @@ const BookingForm = ({ onSubmit, loading, error }) => {
 
   const [assets, setAssets] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(true);
+  const [localError, setLocalError] = useState(null);
+
+  const getMinDateTimeString = () => {
+    const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
+    return localISOTime;
+  };
 
   useEffect(() => {
     const fetchAssets = async () => {
       try {
         const res = await api.get('/assets?limit=100');
         if (res.data.success) {
-          // Filter to show only bookable categories: Meeting Rooms, Vehicles, Projectors, Conference Rooms
           const bookableCategories = ['meeting rooms', 'vehicles', 'projectors', 'conference rooms'];
           const filtered = res.data.assets.filter((asset) => {
             const catName = asset.category?.name?.toLowerCase() || '';
@@ -43,97 +50,103 @@ const BookingForm = ({ onSubmit, loading, error }) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleSelectChange = (val) => {
+    setFormData({ ...formData, asset: val });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLocalError(null);
+
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const now = new Date();
+
+    if (start < now) {
+      setLocalError('Start date/time cannot be in the past.');
+      return;
+    }
+
+    if (end <= start) {
+      setLocalError('End date/time must be strictly after the start date/time.');
+      return;
+    }
+
     onSubmit(formData);
   };
 
+  const minDateTime = getMinDateTimeString();
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-      {error && (
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.1)', 
-          border: '1px solid rgba(239, 68, 68, 0.3)', 
-          color: '#ef4444', 
-          padding: '12px', 
-          borderRadius: '8px', 
-          fontSize: '13px' 
-        }}>
-          {error}
+    <form onSubmit={handleSubmit} className="space-y-4 py-4">
+      {(localError || error) && (
+        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md border border-destructive/20">
+          {localError || error}
         </div>
       )}
 
-      {/* Select Asset */}
-      <div>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Select Resource *</label>
-        <select
-          name="asset"
-          value={formData.asset}
-          onChange={handleInputChange}
-          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer', outline: 'none' }}
+      <div className="space-y-2">
+        <Label>Select Resource <span className="text-destructive">*</span></Label>
+        <Select 
+          value={formData.asset} 
+          onValueChange={handleSelectChange}
           required
         >
-          <option value="">{loadingAssets ? 'Loading resources...' : 'Select a Meeting Room, Vehicle, or Device'}</option>
-          {assets.map((asset) => (
-            <option key={asset._id} value={asset._id}>
-              {asset.name} ({asset.category?.name} - S/N: {asset.serialNumber})
-            </option>
-          ))}
-        </select>
+          <SelectTrigger>
+            <SelectValue placeholder={loadingAssets ? 'Loading resources...' : 'Select a Meeting Room, Vehicle, or Device'} />
+          </SelectTrigger>
+          <SelectContent>
+            {assets.map((asset) => (
+              <SelectItem key={asset._id} value={asset._id}>
+                {asset.name} ({asset.category?.name} - S/N: {asset.serialNumber})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Start Date & Time */}
-      <div>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Start Date & Time *</label>
-        <input
+      <div className="space-y-2">
+        <Label>Start Date & Time <span className="text-destructive">*</span></Label>
+        <Input
           type="datetime-local"
           name="startDate"
+          min={minDateTime}
           value={formData.startDate}
           onChange={handleInputChange}
-          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', outline: 'none' }}
           required
         />
       </div>
 
-      {/* End Date & Time */}
-      <div>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>End Date & Time *</label>
-        <input
+      <div className="space-y-2">
+        <Label>End Date & Time <span className="text-destructive">*</span></Label>
+        <Input
           type="datetime-local"
           name="endDate"
+          min={formData.startDate || minDateTime}
           value={formData.endDate}
           onChange={handleInputChange}
-          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', outline: 'none' }}
           required
         />
       </div>
 
-      {/* Purpose */}
-      <div>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Purpose of Reservation *</label>
-        <textarea
+      <div className="space-y-2">
+        <Label>Purpose of Reservation <span className="text-destructive">*</span></Label>
+        <Textarea
           name="purpose"
           placeholder="e.g. Weekly Sync, Client Pitch meeting..."
           value={formData.purpose}
           onChange={handleInputChange}
-          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', resize: 'vertical', minHeight: '80px', outline: 'none' }}
+          className="resize-none"
+          rows={3}
           required
         />
       </div>
 
-      {/* Submit button */}
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-        <button
-          type="submit"
-          disabled={loading}
-          className="counter"
-          style={{ padding: '10px 24px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-        >
+      <div className="flex justify-end pt-4">
+        <Button type="submit" disabled={loading}>
           {loading ? 'Confirming...' : 'Book Resource'}
-        </button>
+        </Button>
       </div>
     </form>
   );
-};
-
-export default BookingForm;
+}

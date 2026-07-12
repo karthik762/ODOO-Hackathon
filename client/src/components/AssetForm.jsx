@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 
 /**
  * Reusable Asset Form Component
@@ -33,18 +33,34 @@ const AssetForm = ({ initialData, onSubmit, loading, error }) => {
   // Load dropdown lists on mount
   useEffect(() => {
     const fetchMetadata = async () => {
+      // Fetch categories
       try {
-        const [catRes, deptRes, empRes] = await Promise.all([
-          api.get('/categories'),
-          api.get('/departments'),
-          api.get('/users')
-        ]);
-
-        if (catRes.data.success) setCategories(catRes.data.categories);
-        if (deptRes.data.success) setDepartments(deptRes.data.departments);
-        if (empRes.data.success) setEmployees(empRes.data.users);
+        const catRes = await api.get('/categories');
+        if (catRes.data.success) {
+          setCategories(catRes.data.categories);
+        }
       } catch (err) {
-        console.error('Error fetching metadata for dropdowns:', err);
+        console.error('Error fetching categories for dropdown:', err);
+      }
+
+      // Fetch departments
+      try {
+        const deptRes = await api.get('/departments');
+        if (deptRes.data.success) {
+          setDepartments(deptRes.data.departments);
+        }
+      } catch (err) {
+        console.error('Error fetching departments for dropdown:', err);
+      }
+
+      // Fetch employees
+      try {
+        const empRes = await api.get('/users');
+        if (empRes.data.success) {
+          setEmployees(empRes.data.users);
+        }
+      } catch (err) {
+        console.error('Error fetching employees for dropdown:', err);
       }
     };
     fetchMetadata();
@@ -67,7 +83,7 @@ const AssetForm = ({ initialData, onSubmit, loading, error }) => {
       });
 
       if (initialData.image) {
-        setImagePreview(`http://localhost:5000${initialData.image}`);
+        setImagePreview(`${API_BASE_URL}${initialData.image}`);
       }
     }
   }, [initialData]);
@@ -91,8 +107,15 @@ const AssetForm = ({ initialData, onSubmit, loading, error }) => {
     // Compile into FormData to support multipart file upload
     const data = new FormData();
     Object.keys(formData).forEach((key) => {
-      if (formData[key] !== '') {
-        data.append(key, formData[key]);
+      let val = formData[key];
+      if (typeof val === 'string') {
+        val = val.trim();
+        if (key === 'serialNumber') {
+          val = val.toUpperCase();
+        }
+      }
+      if (val !== '') {
+        data.append(key, val);
       }
     });
 
@@ -169,6 +192,8 @@ const AssetForm = ({ initialData, onSubmit, loading, error }) => {
             type="number"
             name="cost"
             placeholder="e.g. 1999"
+            min="0"
+            step="any"
             value={formData.cost}
             onChange={handleInputChange}
             style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', outline: 'none' }}

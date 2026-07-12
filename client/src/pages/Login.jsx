@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { LogIn } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-/**
- * Login Component
- * Renders the user login form.
- */
-const Login = () => {
+export default function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [localError, setLocalError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { login, user, error, setError } = useAuth();
   const navigate = useNavigate();
@@ -33,125 +36,95 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError(null);
+    setIsLoading(true);
 
     if (!formData.email || !formData.password) {
       setLocalError('Please fill in all fields.');
+      setIsLoading(false);
       return;
     }
 
     const res = await login(formData.email, formData.password);
     if (res.success) {
       navigate('/');
+    } else {
+      setIsLoading(false);
     }
   };
 
   return (
-    <section id="center" style={{ minHeight: '80vh' }}>
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        padding: '40px',
-        maxWidth: '400px',
-        width: '90%',
-        boxShadow: 'var(--shadow)',
-        textAlign: 'center'
-      }}>
-        <h2 style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-h)', marginBottom: '8px' }}>
-          Welcome Back
-        </h2>
-        <p style={{ color: 'var(--text)', fontSize: '14px', marginBottom: '24px' }}>
-          Sign in to access your AssetFlow dashboard
-        </p>
-
-        {(localError || error) && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#ef4444',
-            padding: '12px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            textAlign: 'left',
-            marginBottom: '20px'
-          }}>
-            {localError || error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="you@company.com"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--code-bg)',
-                color: 'var(--text-h)',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-              required
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                background: 'var(--code-bg)',
-                color: 'var(--text-h)',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="counter"
-            style={{
-              marginTop: '16px',
-              padding: '12px',
-              width: '100%',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              border: 'none',
-              borderRadius: '6px'
-            }}
-          >
-            Login
-          </button>
-        </form>
-
-        <p style={{ marginTop: '24px', fontSize: '14px', color: 'var(--text)' }}>
-          Don't have an account?{' '}
-          <Link to="/register" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: '600' }}>
-            Register here
-          </Link>
-        </p>
-      </div>
-    </section>
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full max-w-md"
+      >
+        <Card className="border-border/50 shadow-2xl bg-card/50 backdrop-blur-xl">
+          <CardHeader className="space-y-2 text-center pb-8">
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <LogIn className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle className="text-3xl font-bold tracking-tight">Welcome back</CardTitle>
+            <CardDescription className="text-base">
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(localError || error) && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-md mb-6 flex items-start gap-2">
+                <span className="block sm:inline">{localError || error}</span>
+              </div>
+            )}
+            
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="name@company.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="h-11 bg-background/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link to="#" className="text-sm font-medium text-primary hover:underline underline-offset-4">
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="h-11 bg-background/50"
+                />
+              </div>
+              
+              <Button type="submit" className="w-full h-11 text-base font-medium mt-6" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign in"}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center border-t border-border/50 pt-6 pb-8">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link to="/register" className="font-semibold text-primary hover:underline underline-offset-4">
+                Register here
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </motion.div>
+    </div>
   );
-};
-
-export default Login;
+}

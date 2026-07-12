@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/common/PageHeader';
+import { EmptyState } from '../components/common/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search, Plus, Edit, Trash2, Tags } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-/**
- * Categories Page
- * Manages classification metadata for inventory assets.
- */
-const Categories = () => {
+export default function Categories() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
 
@@ -14,12 +23,10 @@ const Categories = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Search & Pagination states
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
 
-  // Form modalities
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -29,7 +36,6 @@ const Categories = () => {
     status: 'active'
   });
 
-  // Delete Confirm Dialog state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const fetchCategories = async () => {
@@ -41,6 +47,7 @@ const Categories = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch categories');
+      toast.error('Failed to fetch categories');
     } finally {
       setLoading(false);
     }
@@ -71,29 +78,26 @@ const Categories = () => {
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
-
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     try {
       if (isEditMode) {
         const res = await api.put(`/categories/${currentId}`, formData);
         if (res.data.success) {
+          toast.success('Category updated');
           setIsModalOpen(false);
           fetchCategories();
         }
       } else {
         const res = await api.post('/categories', formData);
         if (res.data.success) {
+          toast.success('Category created');
           setIsModalOpen(false);
           fetchCategories();
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Operation failed');
     }
   };
 
@@ -101,307 +105,211 @@ const Categories = () => {
     try {
       const res = await api.delete(`/categories/${id}`);
       if (res.data.success) {
-        setDeleteConfirmId(null);
+        toast.success('Category deleted');
         fetchCategories();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete operation failed');
+      toast.error(err.response?.data?.message || 'Delete operation failed');
+    } finally {
       setDeleteConfirmId(null);
     }
   };
 
-  // Filtration logic
   const filteredCategories = categories.filter((cat) =>
     cat.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      {/* Header bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h2 style={{ margin: 0, color: 'var(--text-h)', fontWeight: '800' }}>Asset Categories</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text)', fontSize: '14px' }}>
-            Manage classifications for system inventory assets
-          </p>
+    <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+      <PageHeader 
+        title="Asset Categories" 
+        description="Manage classifications for system inventory assets."
+        actions={
+          isAdmin && (
+            <Button onClick={handleOpenCreate} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add Category
+            </Button>
+          )
+        }
+      />
+
+      <div className="flex items-center gap-4">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search by category name..." 
+            className="pl-9"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+          />
         </div>
-        {isAdmin && (
-          <button
-            onClick={handleOpenCreate}
-            className="counter"
-            style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '14px', border: 'none', borderRadius: '6px' }}
-          >
-            + Add Category
-          </button>
-        )}
       </div>
 
-      {error && (
-        <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13px' }}>
-          {error}
-        </div>
-      )}
-
-      {/* Search block */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-        <input
-          type="text"
-          placeholder="Search by category name..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-          style={{
-            flexGrow: 1,
-            padding: '10px 16px',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            background: 'var(--code-bg)',
-            color: 'var(--text-h)',
-            fontSize: '14px',
-            outline: 'none'
-          }}
-        />
-      </div>
-
-      {/* Table block */}
-      <div style={{
-        background: 'var(--code-bg)',
-        border: '1px solid var(--border)',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: 'var(--shadow)'
-      }}>
+      <div className="bg-card border rounded-lg shadow-sm overflow-hidden">
         {loading ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text)' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.5s infinite', margin: '0 auto 12px' }}></div>
-            Loading categories...
+          <div className="p-8 space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
           </div>
         ) : currentItems.length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text)' }}>
-            <p style={{ fontSize: '15px' }}>No categories found.</p>
-          </div>
+          <EmptyState 
+            icon={<Tags className="w-8 h-8" />}
+            title="No categories found"
+            description={search ? "We couldn't find any categories matching your search." : "Get started by adding a new category."}
+          />
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.05)' }}>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Name</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Description</th>
-                  <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600' }}>Status</th>
-                  {isAdmin && <th style={{ padding: '16px 20px', color: 'var(--text-h)', fontWeight: '600', textAlign: 'right' }}>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
+                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {currentItems.map((cat) => (
-                  <tr key={cat._id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                    <td style={{ padding: '16px 20px', fontWeight: 'bold', color: 'var(--text-h)' }}>{cat.name}</td>
-                    <td style={{ padding: '16px 20px', color: 'var(--text)' }}>{cat.description || '—'}</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        background: cat.status === 'active' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(107, 114, 128, 0.1)',
-                        color: cat.status === 'active' ? '#22c55e' : '#6b7280',
-                        border: cat.status === 'active' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(107, 114, 128, 0.3)'
-                      }}>
+                  <TableRow key={cat._id} className="group">
+                    <TableCell className="font-medium">{cat.name}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                      {cat.description || '—'}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        cat.status === 'active' 
+                          ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' 
+                          : 'bg-muted text-muted-foreground border'
+                      }`}>
                         {cat.status}
                       </span>
-                    </td>
+                    </TableCell>
                     {isAdmin && (
-                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => handleOpenEdit(cat)}
-                            style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 10px', fontSize: '12px', color: 'var(--text-h)', cursor: 'pointer' }}
-                            onMouseOver={(e) => e.target.style.background = 'var(--bg)'}
-                            onMouseOut={(e) => e.target.style.background = 'transparent'}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(cat._id)}
-                            style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '4px', padding: '4px 10px', fontSize: '12px', color: '#ef4444', cursor: 'pointer' }}
-                            onMouseOver={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.2)'}
-                            onMouseOut={(e) => e.target.style.background = 'rgba(239, 68, 68, 0.1)'}
-                          >
-                            Delete
-                          </button>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(cat)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirmId(cat._id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                      </td>
+                      </TableCell>
                     )}
-                  </tr>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-
-        {/* Pagination blocks */}
+        
         {!loading && totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderTop: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text)' }}>
+          <div className="p-4 border-t flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
               Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredCategories.length)} of {filteredCategories.length} entries
             </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: 'var(--text-h)' }}
+                onClick={() => setCurrentPage(p => p - 1)}
               >
                 Previous
-              </button>
-              <button
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: 'var(--text-h)' }}
+                onClick={() => setCurrentPage(p => p + 1)}
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* CREATE/EDIT MODAL */}
-      {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: 'var(--shadow)',
-            animation: 'scaleUp 0.2s ease'
-          }}>
-            <h3 style={{ margin: '0 0 20px', color: 'var(--text-h)', fontSize: '22px', fontWeight: '800' }}>
-              {isEditMode ? 'Edit Category' : 'Create Category'}
-            </h3>
-            
-            <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Name *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. IT Equipment"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', outline: 'none' }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Description</label>
-                <textarea
-                  placeholder="Category details..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', resize: 'vertical', minHeight: '80px', outline: 'none' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--code-bg)', color: 'var(--text-h)', cursor: 'pointer', outline: 'none' }}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-h)', borderRadius: '6px', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="counter"
-                  style={{ padding: '8px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                >
-                  {isEditMode ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* DELETE CONFIRM DIALOG */}
-      {deleteConfirmId && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 101
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90%',
-            maxWidth: '400px',
-            boxShadow: 'var(--shadow)',
-            textAlign: 'center'
-          }}>
-            <h3 style={{ margin: '0 0 12px', color: 'var(--text-h)', fontSize: '20px', fontWeight: '800' }}>Confirm Delete</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '24px', lineHeight: '1.5' }}>
-              Are you sure you want to delete this category? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-h)', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirmId)}
-                style={{ padding: '8px 20px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                Delete
-              </button>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? 'Edit Category' : 'Create Category'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="name"
+                placeholder="e.g. IT Equipment"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Category details..."
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select 
+                value={formData.status} 
+                onValueChange={(val) => setFormData({ ...formData, status: val })}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {isEditMode ? 'Save Changes' : 'Create Category'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the category and remove its data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deleteConfirmId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Category
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
-
-export default Categories;
+}

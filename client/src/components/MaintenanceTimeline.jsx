@@ -1,8 +1,6 @@
-/**
- * Maintenance Timeline Component
- * Renders a visual progress bar indicating ticket resolution status (Reported, Approved, In Repair, Resolved/Rejected).
- */
-const MaintenanceTimeline = ({ status }) => {
+import { Check, X } from 'lucide-react';
+
+export default function MaintenanceTimeline({ status }) {
   const isRejected = status === 'Rejected';
   
   const getStepStatus = (step) => {
@@ -28,32 +26,6 @@ const MaintenanceTimeline = ({ status }) => {
     return 'upcoming';
   };
 
-  const getDotStyle = (stepStatus) => {
-    const base = {
-      width: '24px',
-      height: '24px',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '11px',
-      fontWeight: 'bold',
-      zIndex: 2,
-      transition: 'all 0.3s'
-    };
-
-    if (stepStatus === 'completed') {
-      return { ...base, background: '#22c55e', color: '#fff', border: '2px solid #22c55e' };
-    }
-    if (stepStatus === 'active') {
-      return { ...base, background: 'var(--accent)', color: '#fff', border: '2px solid var(--accent)', boxShadow: '0 0 10px var(--accent)' };
-    }
-    if (stepStatus === 'rejected') {
-      return { ...base, background: '#ef4444', color: '#fff', border: '2px solid #ef4444' };
-    }
-    return { ...base, background: 'var(--bg)', color: 'var(--text)', border: '2px solid var(--border)' };
-  };
-
   const steps = [
     { num: 1, label: 'Reported' },
     { num: 2, label: isRejected ? 'Rejected' : 'Approved' },
@@ -62,45 +34,61 @@ const MaintenanceTimeline = ({ status }) => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
-      <span style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text)', letterSpacing: '1px' }}>
+    <div className="flex flex-col gap-3 py-3 w-full">
+      <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
         Workflow Progression Timeline
       </span>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'relative',
-        padding: '10px 20px',
-        background: 'var(--bg)',
-        border: '1px solid var(--border)',
-        borderRadius: '10px',
-        marginTop: '8px'
-      }}>
+      
+      <div className="relative flex justify-between items-center px-4 py-6 bg-muted/20 border border-border/50 rounded-xl mt-2 overflow-hidden">
         {/* Connection Line */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '40px',
-          right: '40px',
-          height: '2px',
-          background: isRejected ? '#ef4444' : (status === 'Resolved' ? '#22c55e' : 'var(--border)'),
-          transform: 'translateY(-50%)',
-          zIndex: 1
-        }}></div>
+        <div 
+          className={`absolute top-1/2 left-8 right-8 h-1 -translate-y-1/2 z-0 rounded-full transition-colors duration-500
+            ${isRejected ? 'bg-destructive/30' : (status === 'Resolved' ? 'bg-emerald-500/30' : 'bg-border')}`}
+        >
+          {/* Active progress fill */}
+          <div 
+            className={`h-full rounded-full transition-all duration-700 ease-in-out
+              ${isRejected ? 'bg-destructive w-[33%]' : 
+                status === 'Resolved' ? 'bg-emerald-500 w-full' : 
+                status === 'Approved' ? 'bg-primary w-[66%]' : 
+                'bg-primary w-0'}`}
+          />
+        </div>
 
-        {steps.map((s) => {
+        {steps.map((s, idx) => {
           const stepStatus = getStepStatus(s.num);
+          
           return (
-            <div key={s.num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', zIndex: 2 }}>
-              <div style={getDotStyle(stepStatus)}>
-                {stepStatus === 'completed' ? '✓' : (stepStatus === 'rejected' ? '✕' : s.num)}
+            <div key={s.num} className="flex flex-col items-center gap-2 z-10 w-16">
+              <div 
+                className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 shadow-sm
+                  ${stepStatus === 'completed' 
+                    ? 'bg-emerald-500 text-white border-2 border-emerald-500 scale-110 shadow-emerald-500/20' 
+                    : stepStatus === 'active' 
+                      ? 'bg-primary text-primary-foreground border-2 border-primary scale-110 shadow-primary/30 ring-4 ring-primary/20' 
+                      : stepStatus === 'rejected' 
+                        ? 'bg-destructive text-destructive-foreground border-2 border-destructive scale-110 shadow-destructive/20' 
+                        : 'bg-background text-muted-foreground border-2 border-border/60'}
+                `}
+              >
+                {stepStatus === 'completed' ? (
+                  <Check className="w-4 h-4" />
+                ) : stepStatus === 'rejected' ? (
+                  <X className="w-4 h-4" />
+                ) : (
+                  s.num
+                )}
               </div>
-              <span style={{
-                fontSize: '11px',
-                fontWeight: '600',
-                color: stepStatus === 'upcoming' ? 'var(--text)' : 'var(--text-h)'
-              }}>
+              <span 
+                className={`
+                  text-[10px] sm:text-xs font-semibold text-center leading-tight
+                  ${stepStatus === 'upcoming' ? 'text-muted-foreground/60' : 'text-foreground'}
+                  ${stepStatus === 'active' ? 'text-primary' : ''}
+                  ${stepStatus === 'completed' ? 'text-emerald-600 dark:text-emerald-400' : ''}
+                  ${stepStatus === 'rejected' ? 'text-destructive' : ''}
+                `}
+              >
                 {s.label}
               </span>
             </div>
@@ -109,6 +97,4 @@ const MaintenanceTimeline = ({ status }) => {
       </div>
     </div>
   );
-};
-
-export default MaintenanceTimeline;
+}

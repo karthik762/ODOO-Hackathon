@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar as CalendarIcon, Clock, User, FileText } from 'lucide-react';
+import { EmptyState } from './common/EmptyState';
 
-/**
- * Booking Calendar / Schedule Component
- * Lists bookings grouped by date ranges, filters by today or upcoming schedules.
- */
-const BookingCalendar = ({ bookings }) => {
+export default function BookingCalendar({ bookings }) {
   const [filter, setFilter] = useState('upcoming'); 
 
-  const getLocalDateString = (dateObj) => new Date(dateObj).toLocaleDateString();
+  const getLocalDateString = (dateObj) => new Date(dateObj).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   const getLocalTimeString = (dateObj) => new Date(dateObj).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const todayStr = new Date().toLocaleDateString();
@@ -23,114 +24,74 @@ const BookingCalendar = ({ bookings }) => {
       return bEnd >= now;
     }
     return true; 
-  });
+  }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
-      {/* Toggles */}
-      <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-        {['upcoming', 'today', 'all'].map((type) => (
-          <button
-            key={type}
-            onClick={() => setFilter(type)}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '6px',
-              border: filter === type ? '1px solid var(--accent-border)' : '1px solid var(--border)',
-              background: filter === type ? 'var(--accent-bg)' : 'transparent',
-              color: filter === type ? 'var(--accent)' : 'var(--text)',
-              fontSize: '13px',
-              fontWeight: '600',
-              textTransform: 'capitalize',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            {type}
-          </button>
-        ))}
+    <div className="space-y-6">
+      <div className="flex justify-start">
+        <Tabs value={filter} onValueChange={setFilter}>
+          <TabsList>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="today">Today</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      {/* Bookings timeline list */}
       {filteredBookings.length === 0 ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text)', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
-          No reservations listed for this selection.
-        </div>
+        <EmptyState 
+          icon={<CalendarIcon className="w-8 h-8" />}
+          title="No reservations listed"
+          description="There are no reservations for the selected filter."
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBookings.map((b) => {
             const isCancelled = b.status === 'Cancelled';
+            
             return (
-              <div
-                key={b._id}
-                style={{
-                  background: 'var(--code-bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px',
-                  padding: '16px 20px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  boxShadow: 'var(--shadow)',
-                  opacity: isCancelled ? 0.6 : 1
-                }}
-              >
-                <div>
-                  <span style={{ 
-                    fontSize: '11px', 
-                    fontWeight: 'bold', 
-                    textTransform: 'uppercase', 
-                    color: 'var(--accent)', 
-                    background: 'var(--accent-bg)', 
-                    border: '1px solid var(--accent-border)', 
-                    padding: '2px 8px', 
-                    borderRadius: '10px', 
-                    marginRight: '8px' 
-                  }}>
-                    {b.asset?.category?.name || 'Asset'}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text)', fontWeight: '600' }}>
-                    S/N: {b.asset?.serialNumber}
-                  </span>
-                  <h4 style={{ margin: '6px 0 4px', color: 'var(--text-h)', fontSize: '16px', fontWeight: '700' }}>
-                    {b.asset?.name}
-                  </h4>
-                  <p style={{ margin: '0 0 8px', color: 'var(--text)', fontSize: '13px' }}>
-                    <strong>Purpose:</strong> {b.purpose}
-                  </p>
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text)' }}>
-                    <span>
-                      <strong>Date:</strong> {getLocalDateString(b.startDate)}
-                    </span>
-                    <span>
-                      <strong>Time:</strong> {getLocalTimeString(b.startDate)} - {getLocalTimeString(b.endDate)}
-                    </span>
-                    <span>
-                      <strong>Reserved By:</strong> {b.bookedBy?.name}
-                    </span>
+              <Card key={b._id} className={`${isCancelled ? 'opacity-60' : ''} transition-all hover:shadow-md border-border/50 bg-card`}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 rounded-md">
+                      {b.asset?.category?.name || 'Asset'}
+                    </Badge>
+                    <Badge variant={b.status === 'Approved' ? 'success' : 'destructive'} className="rounded-md capitalize">
+                      {b.status}
+                    </Badge>
                   </div>
-                </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    padding: '3px 8px',
-                    borderRadius: '12px',
-                    background: b.status === 'Approved' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: b.status === 'Approved' ? '#22c55e' : '#ef4444',
-                    border: b.status === 'Approved' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
-                  }}>
-                    {b.status}
-                  </span>
-                </div>
-              </div>
+                  <CardTitle className="text-xl mt-2 truncate" title={b.asset?.name}>
+                    {b.asset?.name}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    S/N: {b.asset?.serialNumber}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-foreground">{getLocalDateString(b.startDate)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      <span>{getLocalTimeString(b.startDate)} - {getLocalTimeString(b.endDate)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-blue-500" />
+                      <span className="truncate">{b.bookedBy?.name}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <FileText className="w-4 h-4 mt-0.5 shrink-0" />
+                    <p className="line-clamp-2">{b.purpose}</p>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
       )}
     </div>
   );
-};
-
-export default BookingCalendar;
+}

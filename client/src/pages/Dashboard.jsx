@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/common/PageHeader';
+import { StatCard } from '../components/common/StatCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Download, Box, CalendarDays, Wrench, DollarSign, Activity, AlertCircle } from 'lucide-react';
+import { StatusBadge } from '../components/common/StatusBadge';
+import { toast } from 'react-hot-toast';
 
-/**
- * Enterprise Dashboard Component
- * Renders role-based metrics, custom SVG data charts, timeline logs, and CSV export triggers.
- */
-const Dashboard = () => {
+export default function Dashboard() {
   const { user } = useAuth();
   const isPrivileged = user?.role === 'Admin' || user?.role === 'AssetManager';
 
@@ -42,365 +46,305 @@ const Dashboard = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success(`${type} report exported successfully.`);
     } catch (err) {
-      console.error('Export CSV Error:', err);
+      toast.error(err.response?.data?.message || 'Failed to export CSV report.');
     }
   };
 
   if (loading) {
     return (
-      <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text)' }}>
-        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.5s infinite', margin: '0 auto 12px' }}></div>
-        Loading dashboard metrics...
+      <div className="space-y-6">
+        <div className="flex justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80 w-full rounded-xl" />
+          <Skeleton className="h-80 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '16px', borderRadius: '8px', textAlign: 'left' }}>
-        {error}
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h3 className="text-xl font-semibold mb-2">Failed to load dashboard</h3>
+        <p className="text-muted-foreground mb-6">{error}</p>
+        <Button onClick={fetchStats}>Retry Connection</Button>
       </div>
     );
   }
 
-  // --- PRIVILEGED VIEWS (ADMIN & ASSET MANAGER) ---
   if (isPrivileged) {
     const { assets, bookings, maintenance, activityFeed } = stats;
     const assetStatus = assets.statusBreakdown || {};
 
     return (
-      <div style={{ animation: 'fadeIn 0.3s ease', textAlign: 'left' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <div>
-            <h2 style={{ margin: 0, color: 'var(--text-h)', fontWeight: '800' }}>Control Center</h2>
-            <p style={{ margin: '4px 0 0', color: 'var(--text)', fontSize: '14px' }}>
-              Real-time enterprise statistics, department asset allocation, and audit reports exporter
-            </p>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => handleExportCSV('assets')}
-              style={{
-                background: 'var(--code-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-h)',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '600'
-              }}
-            >
-              Export Assets CSV
-            </button>
-            <button
-              onClick={() => handleExportCSV('bookings')}
-              style={{
-                background: 'var(--code-bg)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-h)',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '600'
-              }}
-            >
-              Export Bookings CSV
-            </button>
-          </div>
+      <div className="space-y-8 animate-in fade-in duration-500 pb-8">
+        <PageHeader 
+          title="Control Center" 
+          description="Real-time enterprise statistics, department asset allocation, and audit reports."
+          actions={
+            <>
+              <Button variant="outline" onClick={() => handleExportCSV('assets')} className="gap-2">
+                <Download className="w-4 h-4" />
+                Assets CSV
+              </Button>
+              <Button variant="outline" onClick={() => handleExportCSV('bookings')} className="gap-2">
+                <Download className="w-4 h-4" />
+                Bookings CSV
+              </Button>
+            </>
+          }
+        />
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard 
+            title="Total Capital Assets" 
+            value={assets.total} 
+            icon={<Box className="w-4 h-4" />} 
+          />
+          <StatCard 
+            title="Capital Value" 
+            value={`$${assets.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+            icon={<DollarSign className="w-4 h-4" />} 
+          />
+          <StatCard 
+            title="Total Reservations" 
+            value={bookings.total} 
+            icon={<CalendarDays className="w-4 h-4" />} 
+            trend="up"
+            trendValue="+4%"
+            description="from last month"
+          />
+          <StatCard 
+            title="Maintenance Cost" 
+            value={`$${maintenance.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+            icon={<Wrench className="w-4 h-4 text-destructive" />} 
+          />
         </div>
 
-        {/* STATS TILES GRID */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '20px',
-          marginBottom: '32px'
-        }}>
-          <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Capital Assets</span>
-            <h3 style={{ margin: '8px 0 0', color: 'var(--text-h)', fontSize: '28px', fontWeight: '800' }}>{assets.total}</h3>
-          </div>
-          <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>Capital Value ($)</span>
-            <h3 style={{ margin: '8px 0 0', color: 'var(--accent)', fontSize: '28px', fontWeight: '800' }}>${assets.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
-          </div>
-          <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Reservations</span>
-            <h3 style={{ margin: '8px 0 0', color: '#22c55e', fontSize: '28px', fontWeight: '800' }}>{bookings.total}</h3>
-          </div>
-          <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>Maintenance Cost ($)</span>
-            <h3 style={{ margin: '8px 0 0', color: '#ef4444', fontSize: '28px', fontWeight: '800' }}>${maintenance.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
-          </div>
-        </div>
-
-        {/* CHARTS SECTIONS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-          {/* Asset Status distribution - Custom SVG Donut or Progress tracking lists */}
-          <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow)' }}>
-            <h4 style={{ margin: '0 0 16px', color: 'var(--text-h)', fontWeight: '700', fontSize: '15px' }}>Asset Status Distribution</h4>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-              {/* Custom SVG Ring chart */}
-              <div style={{ position: 'relative', width: '120px', height: '120px' }}>
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" strokeWidth="12" />
-                  {assets.total > 0 && (() => {
-                    const avPct = (assetStatus.Available || 0) / assets.total;
-                    const asPct = (assetStatus.Assigned || 0) / assets.total;
-                    const mtPct = (assetStatus.Maintenance || 0) / assets.total;
-                    
-                    const avLen = 2 * Math.PI * 50 * avPct;
-                    const asLen = 2 * Math.PI * 50 * asPct;
-                    const mtLen = 2 * Math.PI * 50 * mtPct;
-
-                    let offset = 0;
-                    return (
-                      <>
-                        {/* Available (Green) */}
-                        {avLen > 0 && (
-                          <circle cx="60" cy="60" r="50" fill="none" stroke="#22c55e" strokeWidth="12"
-                            strokeDasharray={`${avLen} 314`} strokeDashoffset={-offset} transform="rotate(-90 60 60)" />
-                        )}
-                        {/* Assigned (Accent Blue) */}
-                        {(() => { offset += avLen; })()}
-                        {asLen > 0 && (
-                          <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent)" strokeWidth="12"
-                            strokeDasharray={`${asLen} 314`} strokeDashoffset={-offset} transform="rotate(-90 60 60)" />
-                        )}
-                        {/* Maintenance (Orange/Red) */}
-                        {(() => { offset += asLen; })()}
-                        {mtLen > 0 && (
-                          <circle cx="60" cy="60" r="50" fill="none" stroke="#f59e0b" strokeWidth="12"
-                            strokeDasharray={`${mtLen} 314`} strokeDashoffset={-offset} transform="rotate(-90 60 60)" />
-                        )}
-                      </>
-                    );
-                  })()}
-                </svg>
-              </div>
-
-              {/* Legend with progress indicators */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }}></span> Available
-                  </span>
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-h)' }}>{assetStatus.Available || 0}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }}></span> Assigned
-                  </span>
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-h)' }}>{assetStatus.Assigned || 0}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span> Maintenance
-                  </span>
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-h)' }}>{assetStatus.Maintenance || 0}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></span> Retired
-                  </span>
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-h)' }}>{assetStatus.Retired || 0}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Department asset counts chart */}
-          <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow)' }}>
-            <h4 style={{ margin: '0 0 16px', color: 'var(--text-h)', fontWeight: '700', fontSize: '15px' }}>Asset Allocation by Department</h4>
-            {assets.departmentBreakdown.length === 0 ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text)', fontSize: '13px' }}>
-                No assets assigned to departments.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {assets.departmentBreakdown.map((d, index) => {
-                  const maxCount = Math.max(...assets.departmentBreakdown.map((x) => x.count));
-                  const pct = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+        {/* Charts & Distributions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Asset Status Distribution */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {[
+                  { label: 'Available', value: assetStatus.Available || 0, color: 'bg-emerald-500' },
+                  { label: 'Assigned', value: assetStatus.Assigned || 0, color: 'bg-primary' },
+                  { label: 'Maintenance', value: assetStatus.Maintenance || 0, color: 'bg-amber-500' },
+                  { label: 'Retired', value: assetStatus.Retired || 0, color: 'bg-destructive' }
+                ].map((item) => {
+                  const pct = assets.total > 0 ? (item.value / assets.total) * 100 : 0;
                   return (
-                    <div key={index} style={{ fontSize: '13px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ color: 'var(--text-h)', fontWeight: '600' }}>{d.department}</span>
-                        <span style={{ fontWeight: 'bold' }}>{d.count} items</span>
+                    <div key={item.label} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium text-foreground">{item.label}</span>
+                        <span className="text-muted-foreground">{item.value}</span>
                       </div>
-                      <div style={{ height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: '4px' }}></div>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${item.color} rounded-full transition-all duration-500 ease-out`} 
+                          style={{ width: `${pct}%` }} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Department Breakdown */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Allocation by Department</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {assets.departmentBreakdown.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground py-12">
+                  No assets assigned to departments.
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {assets.departmentBreakdown.map((d, index) => {
+                    const maxCount = Math.max(...assets.departmentBreakdown.map((x) => x.count));
+                    const pct = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium text-foreground">{d.department}</span>
+                          <span className="text-muted-foreground">{d.count} items</span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary rounded-full transition-all duration-500 ease-out" 
+                            style={{ width: `${pct}%` }} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Activity Feed */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Activity className="w-5 h-5 text-muted-foreground" />
+              Enterprise Activity Log
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activityFeed.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No recent activity records.</p>
+            ) : (
+              <div className="relative space-y-6 border-l border-border ml-3 pl-6 pb-2 pt-2">
+                {activityFeed.map((a, i) => {
+                  const isBooking = a.type === 'booking';
+                  return (
+                    <div key={i} className="relative">
+                      <div className={`absolute -left-[35px] top-1 w-7 h-7 rounded-full border-4 border-background flex items-center justify-center ${isBooking ? 'bg-primary/20 text-primary' : 'bg-amber-500/20 text-amber-600'}`}>
+                        <div className={`w-2.5 h-2.5 rounded-full ${isBooking ? 'bg-primary' : 'bg-amber-500'}`} />
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-sm text-foreground">{a.title}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{a.description}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap bg-secondary px-2 py-1 rounded-md">
+                          {new Date(a.date).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </div>
-        </div>
-
-        {/* RECENT ACTIVITY TIMELINE */}
-        <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow)' }}>
-          <h4 style={{ margin: '0 0 20px', color: 'var(--text-h)', fontWeight: '700', fontSize: '16px' }}>Enterprise Activity Log Feed</h4>
-          
-          {activityFeed.length === 0 ? (
-            <p style={{ color: 'var(--text)', fontSize: '13px' }}>No recent activity records.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
-              {/* Timeline center line */}
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: '16px', width: '2px', background: 'var(--border)' }}></div>
-
-              {activityFeed.map((a, i) => {
-                const isBooking = a.type === 'booking';
-                return (
-                  <div key={i} style={{ display: 'flex', gap: '16px', position: 'relative', zIndex: 1 }}>
-                    <div style={{
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '50%',
-                      background: isBooking ? 'var(--accent-bg)' : 'rgba(245, 158, 11, 0.1)',
-                      border: isBooking ? '1px solid var(--accent-border)' : '1px solid rgba(245, 158, 11, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '14px',
-                      color: isBooking ? 'var(--accent)' : '#f59e0b'
-                    }}>
-                      {isBooking ? '📅' : '🔧'}
-                    </div>
-                    <div style={{ flex: 1, textAlign: 'left', background: 'var(--bg)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text)', float: 'right' }}>
-                        {new Date(a.date).toLocaleDateString()}
-                      </span>
-                      <h5 style={{ margin: '0 0 4px', color: 'var(--text-h)', fontSize: '14px', fontWeight: '700' }}>{a.title}</h5>
-                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text)', opacity: 0.9 }}>{a.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // --- STANDARD STAFF VIEWS (EMPLOYEE / DEPARTMENT HEAD) ---
+  // --- STANDARD STAFF VIEWS ---
   const { assets, bookings, maintenance, activityFeed, notifications } = stats;
 
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease', textAlign: 'left' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: 0, color: 'var(--text-h)', fontWeight: '800' }}>Welcome Back, {user?.name}</h2>
-        <p style={{ margin: '4px 0 0', color: 'var(--text)', fontSize: '14px' }}>
-          Overview of your assigned hardware workspace, reservation schedules, and reported tickets
-        </p>
-      </div>
+    <div className="space-y-8 animate-in fade-in duration-500 pb-8">
+      <PageHeader 
+        title={`Welcome Back, ${user?.name}`} 
+        description="Overview of your assigned hardware workspace, reservation schedules, and reported tickets."
+      />
 
-      {/* NOTIFICATION BULLETINS */}
       {notifications && notifications.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px' }}>
+        <div className="space-y-3">
           {notifications.map((n, i) => (
             <div
               key={i}
-              style={{
-                background: n.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.05)',
-                border: n.type === 'success' ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid var(--border)',
-                color: n.type === 'success' ? '#22c55e' : 'var(--text-h)',
-                padding: '12px 20px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}
+              className={`flex items-start gap-3 p-4 rounded-lg border text-sm ${
+                n.type === 'success' 
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400' 
+                  : 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400'
+              }`}
             >
-              <span>{n.type === 'success' ? '🎉' : '🔔'}</span>
-              <span style={{ flex: 1 }}>{n.message}</span>
-              <span style={{ fontSize: '11px', color: 'var(--text)', opacity: 0.8 }}>{new Date(n.date).toLocaleDateString()}</span>
+              <div className="mt-0.5">{n.type === 'success' ? '🎉' : '🔔'}</div>
+              <div className="flex-1">{n.message}</div>
+              <div className="text-xs opacity-70 whitespace-nowrap">{new Date(n.date).toLocaleDateString()}</div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Stats Summary Tiles */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '20px',
-        marginBottom: '32px'
-      }}>
-        <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>My Assigned Hardware</span>
-          <h3 style={{ margin: '8px 0 0', color: 'var(--text-h)', fontSize: '28px', fontWeight: '800' }}>{assets.total}</h3>
-        </div>
-        <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>My Booking Schedules</span>
-          <h3 style={{ margin: '8px 0 0', color: 'var(--accent)', fontSize: '28px', fontWeight: '800' }}>{bookings.total}</h3>
-        </div>
-        <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text)', textTransform: 'uppercase', fontWeight: 'bold' }}>My Reported Issues</span>
-          <h3 style={{ margin: '8px 0 0', color: '#f59e0b', fontSize: '28px', fontWeight: '800' }}>{maintenance.total}</h3>
-        </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard 
+          title="Assigned Hardware" 
+          value={assets.total} 
+          icon={<Box className="w-4 h-4" />} 
+        />
+        <StatCard 
+          title="My Bookings" 
+          value={bookings.total} 
+          icon={<CalendarDays className="w-4 h-4" />} 
+        />
+        <StatCard 
+          title="Reported Issues" 
+          value={maintenance.total} 
+          icon={<Wrench className="w-4 h-4" />} 
+        />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-        {/* Hardware details inventory */}
-        <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow)' }}>
-          <h4 style={{ margin: '0 0 16px', color: 'var(--text-h)', fontWeight: '700', fontSize: '15px' }}>My Workspaces & Devices</h4>
-          {assets.list.length === 0 ? (
-            <p style={{ color: 'var(--text)', fontSize: '13px', margin: 0 }}>No assets assigned to your workspace.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {assets.list.map((a) => (
-                <div key={a._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                  <div>
-                    <h5 style={{ margin: '0 0 4px', color: 'var(--text-h)', fontSize: '14px', fontWeight: '700' }}>{a.name}</h5>
-                    <span style={{ fontSize: '11px', color: 'var(--text)' }}>S/N: {a.serialNumber}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">My Workspace Devices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {assets.list.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No assets assigned to your workspace.</p>
+            ) : (
+              <div className="space-y-3">
+                {assets.list.map((a) => (
+                  <div key={a._id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-secondary/50 transition-colors">
+                    <div>
+                      <h5 className="font-medium text-sm text-foreground">{a.name}</h5>
+                      <p className="text-xs text-muted-foreground mt-1">S/N: {a.serialNumber}</p>
+                    </div>
+                    <StatusBadge status={a.status} />
                   </div>
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: 'bold',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    background: a.status === 'Available' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                    color: a.status === 'Available' ? '#22c55e' : 'var(--accent)'
-                  }}>
-                    {a.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Activity feed logs */}
-        <div style={{ background: 'var(--code-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--shadow)' }}>
-          <h4 style={{ margin: '0 0 16px', color: 'var(--text-h)', fontWeight: '700', fontSize: '15px' }}>My Timeline Feed</h4>
-          {activityFeed.length === 0 ? (
-            <p style={{ color: 'var(--text)', fontSize: '13px', margin: 0 }}>No recent schedules or tickets logs.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {activityFeed.map((a, i) => (
-                <div key={i} style={{ borderLeft: '3px solid var(--accent)', paddingLeft: '12px', textAlign: 'left' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--text)', opacity: 0.8 }}>
-                    {new Date(a.date).toLocaleDateString()}
-                  </span>
-                  <h5 style={{ margin: '2px 0 4px', color: 'var(--text-h)', fontSize: '13px', fontWeight: '700' }}>{a.title}</h5>
-                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text)' }}>{a.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">My Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activityFeed.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No recent schedules or tickets logs.</p>
+            ) : (
+              <div className="relative space-y-6 border-l border-border ml-3 pl-6 pb-2 pt-2">
+                {activityFeed.map((a, i) => (
+                  <div key={i} className="relative">
+                    <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-primary ring-4 ring-background" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(a.date).toLocaleDateString()}
+                      </span>
+                      <p className="font-medium text-sm text-foreground">{a.title}</p>
+                      <p className="text-sm text-muted-foreground">{a.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

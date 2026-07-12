@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { API_BASE_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/common/PageHeader';
+import { StatusBadge } from '../components/common/StatusBadge';
+import { EmptyState } from '../components/common/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Search, Image as ImageIcon, Box } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-/**
- * Asset Directory Component
- * Displays a search-and-filter grid of inventory items with image rendering.
- */
-const AssetDirectory = () => {
+export default function AssetDirectory() {
   const { user } = useAuth();
   const canEdit = user?.role === 'Admin' || user?.role === 'AssetManager';
   const navigate = useNavigate();
@@ -16,36 +23,35 @@ const AssetDirectory = () => {
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
 
-  // States
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Search & Filters
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
 
-  // Delete Confirm Dialog state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  const fetchDropdownData = async () => {
-    try {
-      const [catRes, deptRes] = await Promise.all([
-        api.get('/categories'),
-        api.get('/departments')
-      ]);
-      if (catRes.data.success) setCategories(catRes.data.categories);
-      if (deptRes.data.success) setDepartments(deptRes.data.departments);
-    } catch (err) {
-      console.error('Error fetching dropdown data:', err);
-    }
-  };
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [catRes, deptRes] = await Promise.all([
+          api.get('/categories'),
+          api.get('/departments')
+        ]);
+        if (catRes.data.success) setCategories(catRes.data.categories);
+        if (deptRes.data.success) setDepartments(deptRes.data.departments);
+      } catch (err) {
+        console.error('Error fetching dropdown data:', err);
+      }
+    };
+    fetchDropdownData();
+  }, []);
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -53,9 +59,9 @@ const AssetDirectory = () => {
     try {
       const params = {
         search,
-        category: selectedCategory,
-        department: selectedDepartment,
-        status: selectedStatus,
+        category: selectedCategory === 'all' ? '' : selectedCategory,
+        department: selectedDepartment === 'all' ? '' : selectedDepartment,
+        status: selectedStatus === 'all' ? '' : selectedStatus,
         page: currentPage,
         limit: itemsPerPage
       };
@@ -67,418 +73,229 @@ const AssetDirectory = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch assets');
+      toast.error('Failed to fetch assets');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDropdownData();
-  }, []);
-
-  useEffect(() => {
     fetchAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, selectedCategory, selectedDepartment, selectedStatus, currentPage]);
 
   const handleDelete = async (id) => {
     try {
       const res = await api.delete(`/assets/${id}`);
       if (res.data.success) {
-        setDeleteConfirmId(null);
+        toast.success('Asset deleted successfully');
         fetchAssets();
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete operation failed');
+      toast.error(err.response?.data?.message || 'Delete operation failed');
+    } finally {
       setDeleteConfirmId(null);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Available':
-        return { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' };
-      case 'Assigned':
-        return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' };
-      case 'Maintenance':
-        return { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)' };
-      default: 
-        return { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' };
-    }
-  };
-
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      {/* Header bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h2 style={{ margin: 0, color: 'var(--text-h)', fontWeight: '800' }}>Assets Inventory</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text)', fontSize: '14px' }}>
-            Browse corporate resource allocations, status, and department assignments
-          </p>
-        </div>
-        {canEdit && (
-          <button
-            onClick={() => navigate('/assets/new')}
-            className="counter"
-            style={{ padding: '10px 20px', cursor: 'pointer', fontSize: '14px', border: 'none', borderRadius: '6px' }}
-          >
-            + Register Asset
-          </button>
-        )}
-      </div>
-
-      {error && (
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.1)', 
-          border: '1px solid rgba(239, 68, 68, 0.3)', 
-          color: '#ef4444', 
-          padding: '12px', 
-          borderRadius: '8px', 
-          marginBottom: '20px', 
-          fontSize: '13px' 
-        }}>
-          {error}
-        </div>
-      )}
+    <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+      <PageHeader 
+        title="Assets Inventory" 
+        description="Browse corporate resource allocations, status, and department assignments."
+        actions={
+          canEdit && (
+            <Button onClick={() => navigate('/assets/new')} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Register Asset
+            </Button>
+          )
+        }
+      />
 
       {/* Filter panel */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '2fr 1fr 1fr 1fr',
-        gap: '16px',
-        marginBottom: '24px',
-        alignItems: 'center'
-      }}>
-        {/* Search Input field */}
-        <input
-          type="text"
-          placeholder="Search by serial number or name..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-          style={{
-            padding: '10px 16px',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            background: 'var(--code-bg)',
-            color: 'var(--text-h)',
-            fontSize: '14px',
-            outline: 'none'
-          }}
-        />
+      <Card className="shadow-sm">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search assets..." 
+              className="pl-9"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+            />
+          </div>
 
-        {/* Categories selector */}
-        <select
-          value={selectedCategory}
-          onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-          style={{
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            background: 'var(--code-bg)',
-            color: 'var(--text-h)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            outline: 'none'
-          }}
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c._id} value={c._id}>{c.name}</option>
-          ))}
-        </select>
+          <Select value={selectedCategory} onValueChange={(val) => { setSelectedCategory(val); setCurrentPage(1); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Departments selector */}
-        <select
-          value={selectedDepartment}
-          onChange={(e) => { setSelectedDepartment(e.target.value); setCurrentPage(1); }}
-          style={{
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            background: 'var(--code-bg)',
-            color: 'var(--text-h)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            outline: 'none'
-          }}
-        >
-          <option value="">All Departments</option>
-          {departments.map((d) => (
-            <option key={d._id} value={d._id}>{d.name}</option>
-          ))}
-        </select>
+          <Select value={selectedDepartment} onValueChange={(val) => { setSelectedDepartment(val); setCurrentPage(1); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map((d) => (
+                <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Statuses selector */}
-        <select
-          value={selectedStatus}
-          onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-          style={{
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid var(--border)',
-            background: 'var(--code-bg)',
-            color: 'var(--text-h)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            outline: 'none'
-          }}
-        >
-          <option value="">All Statuses</option>
-          <option value="Available">Available</option>
-          <option value="Assigned">Assigned</option>
-          <option value="Maintenance">Maintenance</option>
-          <option value="Retired">Retired</option>
-        </select>
-      </div>
+          <Select value={selectedStatus} onValueChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Available">Available</SelectItem>
+              <SelectItem value="Assigned">Assigned</SelectItem>
+              <SelectItem value="Maintenance">Maintenance</SelectItem>
+              <SelectItem value="Retired">Retired</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {/* Grid container */}
       {loading ? (
-        <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text)' }}>
-          <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.5s infinite', margin: '0 auto 12px' }}></div>
-          Loading asset records...
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex flex-col space-y-3">
+              <Skeleton className="h-[180px] w-full rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
+          ))}
         </div>
+      ) : error ? (
+        <EmptyState 
+          icon={<Box className="w-8 h-8" />}
+          title="Error Loading Assets"
+          description={error}
+          actionLabel="Retry"
+          onAction={fetchAssets}
+        />
       ) : assets.length === 0 ? (
-        <div style={{
-          background: 'var(--code-bg)',
-          border: '1px solid var(--border)',
-          borderRadius: '12px',
-          padding: '60px',
-          textAlign: 'center',
-          color: 'var(--text)'
-        }}>
-          No assets found.
-        </div>
+        <EmptyState 
+          icon={<Box className="w-8 h-8" />}
+          title="No assets found"
+          description="Try adjusting your search or filters to find what you're looking for."
+        />
       ) : (
-        <div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '24px',
-            marginBottom: '32px'
-          }}>
-            {assets.map((asset) => {
-              const stat = getStatusColor(asset.status);
-              return (
-                <div
-                  key={asset._id}
-                  style={{
-                    background: 'var(--code-bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: 'var(--shadow)',
-                    transition: 'all 0.2s',
-                    position: 'relative'
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                >
-                  {/* Uploaded File Image block */}
-                  <div style={{
-                    height: '180px',
-                    background: '#1a1d24',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                    borderBottom: '1px solid var(--border)'
-                  }}>
-                    {asset.image ? (
-                      <img src={`http://localhost:5000${asset.image}`} alt={asset.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="2" width="20" height="8" rx="2"/>
-                        <rect x="2" y="14" width="20" height="8" rx="2"/>
-                        <line x1="6" y1="6" x2="6.01" y2="6"/>
-                        <line x1="6" y1="18" x2="6.01" y2="18"/>
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Body elements details */}
-                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flexGrow: 1, textAlign: 'left' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 'bold' }}>
-                        {asset.category?.name || 'Unassigned'}
-                      </span>
-                      <span style={{
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        color: stat.color,
-                        background: stat.bg,
-                        border: stat.border
-                      }}>
-                        {asset.status}
-                      </span>
-                    </div>
-
-                    <h4 style={{ margin: '0 0 4px', color: 'var(--text-h)', fontSize: '16px', fontWeight: '700' }}>
-                      {asset.name}
-                    </h4>
-                    <p style={{ margin: '0 0 12px', color: 'var(--text)', fontSize: '12px', fontFamily: 'var(--mono)' }}>
-                      S/N: {asset.serialNumber}
-                    </p>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '8px',
-                      fontSize: '12px',
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: '12px',
-                      marginTop: 'auto',
-                      color: 'var(--text)'
-                    }}>
-                      <div>
-                        <strong>Dept:</strong> {asset.department?.code || '—'}
-                      </div>
-                      <div>
-                        <strong>Assigned:</strong> {asset.assignedTo?.name || '—'}
-                      </div>
-                    </div>
-
-                    {/* Actions button list */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '8px',
-                      marginTop: '16px',
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: '12px',
-                      justifyContent: 'flex-end'
-                    }}>
-                      <Link
-                        to={`/assets/${asset._id}`}
-                        style={{
-                          textDecoration: 'none',
-                          fontSize: '12px',
-                          color: 'var(--text-h)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '4px',
-                          padding: '4px 10px',
-                          fontWeight: '600',
-                          textAlign: 'center'
-                        }}
-                      >
-                        Details
-                      </Link>
-                      {canEdit && (
-                        <>
-                          <button
-                            onClick={() => navigate(`/assets/${asset._id}/edit`)}
-                            style={{ 
-                              background: 'transparent', 
-                              border: '1px solid var(--border)', 
-                              borderRadius: '4px', 
-                              padding: '4px 10px', 
-                              fontSize: '12px', 
-                              color: 'var(--text-h)', 
-                              cursor: 'pointer', 
-                              fontWeight: '600' 
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(asset._id)}
-                            style={{ 
-                              background: 'rgba(239, 68, 68, 0.1)', 
-                              border: '1px solid rgba(239, 68, 68, 0.3)', 
-                              borderRadius: '4px', 
-                              padding: '4px 10px', 
-                              fontSize: '12px', 
-                              color: '#ef4444', 
-                              cursor: 'pointer', 
-                              fontWeight: '600' 
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {assets.map((asset) => (
+              <Card key={asset._id} className="overflow-hidden hover:shadow-md transition-all duration-200 group flex flex-col">
+                <div className="relative h-48 bg-muted flex items-center justify-center overflow-hidden border-b">
+                  {asset.image ? (
+                    <img 
+                      src={`${API_BASE_URL}${asset.image}`} 
+                      alt={asset.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    />
+                  ) : (
+                    <ImageIcon className="w-12 h-12 text-muted-foreground/30" />
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <StatusBadge status={asset.status} />
                   </div>
                 </div>
-              );
-            })}
+                
+                <CardHeader className="p-4 pb-2">
+                  <div className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+                    {asset.category?.name || 'Unassigned'}
+                  </div>
+                  <CardTitle className="text-lg line-clamp-1">{asset.name}</CardTitle>
+                  <p className="text-sm font-mono text-muted-foreground">S/N: {asset.serialNumber}</p>
+                </CardHeader>
+                
+                <CardContent className="p-4 pt-2 flex-1">
+                  <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mt-2 border-t pt-3">
+                    <div>
+                      <span className="block text-xs font-medium text-foreground">Department</span>
+                      {asset.department?.code || '—'}
+                    </div>
+                    <div>
+                      <span className="block text-xs font-medium text-foreground">Assigned To</span>
+                      <span className="line-clamp-1">{asset.assignedTo?.name || '—'}</span>
+                    </div>
+                  </div>
+                </CardContent>
+
+                <CardFooter className="p-4 pt-0 flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                    <Link to={`/assets/${asset._id}`}>Details</Link>
+                  </Button>
+                  {canEdit && (
+                    <>
+                      <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                        <Link to={`/assets/${asset._id}/edit`}>Edit</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(asset._id)} className="w-full sm:w-auto text-destructive hover:text-destructive hover:bg-destructive/10 border-transparent sm:border-border hover:border-destructive/20">
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </CardFooter>
+              </Card>
+            ))}
           </div>
 
-          {/* Pagination controls */}
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-              <button
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: 'var(--text-h)' }}
               >
                 Previous
-              </button>
-              <span style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: 'var(--text)', padding: '0 12px' }}>
+              </Button>
+              <div className="text-sm font-medium text-muted-foreground px-4">
                 Page {currentPage} of {totalPages}
-              </span>
-              <button
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', color: 'var(--text-h)' }}
               >
                 Next
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* Delete modal confirm block */}
-      {deleteConfirmId && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 101
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            padding: '32px',
-            width: '90%',
-            maxWidth: '400px',
-            boxShadow: 'var(--shadow)',
-            textAlign: 'center'
-          }}>
-            <h3 style={{ margin: '0 0 12px', color: 'var(--text-h)', fontSize: '20px', fontWeight: '800' }}>Confirm Delete</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text)', marginBottom: '24px', lineHeight: '1.5' }}>
-              Are you sure you want to delete this asset? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-h)', borderRadius: '6px', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirmId)}
-                style={{ padding: '8px 20px', background: '#ef4444', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the asset and remove its data from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deleteConfirmId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-};
-
-export default AssetDirectory;
+}
