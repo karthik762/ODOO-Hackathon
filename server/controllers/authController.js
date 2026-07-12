@@ -31,11 +31,17 @@ export const registerUser = async (req, res) => {
       });
     }
 
+    let dbRole = 'Employee';
+    if (role === 'admin') dbRole = 'Admin';
+    else if (role === 'manager') dbRole = 'AssetManager';
+    else if (role === 'staff') dbRole = 'Employee';
+    else if (role) dbRole = role;
+
     const user = await User.create({
       name,
       email,
       password,
-      role: role || 'Employee',
+      role: dbRole,
       department: department || ''
     });
 
