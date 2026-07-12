@@ -83,6 +83,25 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Update profile action
+  const updateProfile = async (name, email, password) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.put('/auth/profile', { name, email, password });
+      if (res.data.success) {
+        setUser(res.data.user);
+        return { success: true };
+      }
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.message || 'Profile update failed';
+      setError(errMsg);
+      return { success: false, error: errMsg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +111,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        updateProfile,
         setError,
       }}
     >

@@ -15,6 +15,8 @@ import EditAsset from './pages/EditAsset';
 import Bookings from './pages/Bookings';
 import Maintenance from './pages/Maintenance';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 /**
@@ -23,6 +25,7 @@ import './App.css';
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" reverseOrder={false} />
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -130,6 +133,16 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <Maintenance />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Profile />
                 </Layout>
               </PrivateRoute>
             } 

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Search, Bell, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Link } from 'react-router-dom'
 
 export function TopNavbar() {
   const { user, logout } = useAuth()
@@ -52,8 +53,8 @@ export function TopNavbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
-              Profile
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link to="/profile">Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">
               Settings

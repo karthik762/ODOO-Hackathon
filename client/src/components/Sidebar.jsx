@@ -75,9 +75,19 @@ export default function Sidebar() {
       </div>
       
       <div className="p-4 border-t border-border mt-auto">
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border shadow-sm">
+        <NavLink 
+          to="/profile" 
+          className={({ isActive }) => 
+            cn(
+              "flex items-center gap-3 p-3 rounded-lg border shadow-sm transition-all duration-200 cursor-pointer block",
+              isActive 
+                ? "bg-primary/10 border-primary/20 text-primary" 
+                : "bg-card border-border hover:bg-muted"
+            )
+          }
+        >
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-primary font-semibold text-sm">
+            <span className="text-primary font-semibold text-sm text-center">
               {user?.name?.charAt(0) || 'U'}
             </span>
           </div>
@@ -85,7 +95,7 @@ export default function Sidebar() {
             <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
             <p className="text-xs text-muted-foreground truncate">{user?.role}</p>
           </div>
-        </div>
+        </NavLink>
       </div>
     </aside>
   );

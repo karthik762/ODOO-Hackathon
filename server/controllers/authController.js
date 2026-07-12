@@ -143,3 +143,59 @@ export const getCurrentUser = async (req, res) => {
     });
   }
 };
+
+/**
+ * Update User Profile
+ * PUT /api/auth/profile
+ */
+export const updateProfile = async (req, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (name) user.name = name;
+
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already in use by another account'
+        });
+      }
+      user.email = email;
+    }
+
+    if (password) {
+      user.password = password; // The userSchema pre-save hook hashes it automatically
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        department: updatedUser.department,
+        status: updatedUser.status
+      }
+    });
+  } catch (err) {
+    console.error('Update Profile Error:', err.message);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Server error updating profile'
+    });
+  }
+};
