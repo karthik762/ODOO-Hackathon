@@ -14,6 +14,7 @@ import AssetDetails from './pages/AssetDetails';
 import RegisterAsset from './pages/RegisterAsset';
 import EditAsset from './pages/EditAsset';
 import Bookings from './pages/Bookings';
+import Maintenance from './pages/Maintenance';
 import api from './services/api';
 import './App.css';
 
@@ -272,6 +273,16 @@ function App() {
               <PrivateRoute>
                 <Layout>
                   <Bookings />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/maintenance" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Maintenance />
                 </Layout>
               </PrivateRoute>
             } 
