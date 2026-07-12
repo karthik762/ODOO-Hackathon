@@ -119,7 +119,7 @@ export default function AssetDetails() {
           <div className="aspect-square bg-muted flex items-center justify-center p-6">
             {asset.image ? (
               <img 
-                src={`${API_BASE_URL}${asset.image}`} 
+                src={asset.image.startsWith('http') ? asset.image : `${API_BASE_URL}${asset.image}`} 
                 alt={asset.name} 
                 className="w-full h-full object-contain rounded-lg drop-shadow-md" 
               />

@@ -200,7 +200,7 @@ export default function AssetDirectory() {
                 <div className="relative h-48 bg-muted flex items-center justify-center overflow-hidden border-b">
                   {asset.image ? (
                     <img 
-                      src={`${API_BASE_URL}${asset.image}`} 
+                      src={asset.image.startsWith('http') ? asset.image : `${API_BASE_URL}${asset.image}`} 
                       alt={asset.name} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                     />
