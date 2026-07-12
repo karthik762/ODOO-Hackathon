@@ -1,8 +1,18 @@
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import PrivateRoute from './components/PrivateRoute';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import './App.css';
 
-function App() {
+/**
+ * Home Page (Protected View)
+ * Displays logged-in user profile, backend query option, and admin checks.
+ */
+function Home() {
+  const { user, logout } = useAuth();
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -31,48 +41,93 @@ function App() {
           borderRadius: '16px',
           border: '1px solid var(--border)',
           padding: '40px',
-          maxWidth: '500px',
+          maxWidth: '600px',
           width: '90%',
           boxShadow: 'var(--shadow)',
           textAlign: 'center',
-          transition: 'transform 0.3s ease'
+          boxSizing: 'border-box'
         }}>
-          <div style={{ marginBottom: '24px' }}>
-            <span style={{
-              fontSize: '12px',
-              textTransform: 'uppercase',
-              letterSpacing: '2px',
-              color: 'var(--accent)',
-              fontWeight: 'bold',
-              background: 'var(--accent-bg)',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              border: '1px solid var(--accent-border)'
+          {/* Header */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: '32px', 
+            borderBottom: '1px solid var(--border)', 
+            paddingBottom: '16px' 
+          }}>
+            <h1 style={{
+              fontSize: '28px',
+              margin: 0,
+              background: 'linear-gradient(135deg, var(--text-h), var(--accent))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: '800'
             }}>
-              Phase 0 – Foundation
-            </span>
+              AssetFlow
+            </h1>
+            <button
+              onClick={logout}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                color: 'var(--text-h)',
+                padding: '6px 12px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.background = 'var(--code-bg)'}
+              onMouseOut={(e) => e.target.style.background = 'transparent'}
+            >
+              Logout
+            </button>
           </div>
 
-          <h1 style={{
-            fontSize: '42px',
-            margin: '10px 0 20px',
-            background: 'linear-gradient(135deg, var(--text-h), var(--accent))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: '800'
-          }}>
-            AssetFlow
-          </h1>
-
-          <p style={{
-            fontSize: '16px',
-            color: 'var(--text)',
+          {/* User profile section */}
+          <div style={{
+            textAlign: 'left',
+            background: 'var(--code-bg)',
+            borderRadius: '10px',
+            padding: '20px',
             marginBottom: '32px',
-            lineHeight: '1.6'
+            border: '1px solid var(--border)'
           }}>
-            Enterprise Asset & Resource Management ERP. Verify the link between the frontend React application and the Node.js backend server.
-          </p>
+            <h3 style={{ 
+              margin: '0 0 16px', 
+              color: 'var(--text-h)', 
+              fontSize: '16px', 
+              fontWeight: '700', 
+              borderBottom: '1px solid var(--border)', 
+              paddingBottom: '8px' 
+            }}>
+              Active Session Profile
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px' }}>
+              <div><strong style={{ color: 'var(--text-h)' }}>Name:</strong> <span style={{ color: 'var(--text)' }}>{user?.name}</span></div>
+              <div><strong style={{ color: 'var(--text-h)' }}>Email:</strong> <span style={{ color: 'var(--text)' }}>{user?.email}</span></div>
+              <div>
+                <strong style={{ color: 'var(--text-h)' }}>Role:</strong>{' '}
+                <span style={{ 
+                  textTransform: 'uppercase', 
+                  fontSize: '11px', 
+                  fontWeight: 'bold', 
+                  color: 'var(--accent)', 
+                  background: 'var(--accent-bg)', 
+                  padding: '2px 8px', 
+                  borderRadius: '12px',
+                  border: '1px solid var(--accent-border)'
+                }}>
+                  {user?.role}
+                </span>
+              </div>
+              <div><strong style={{ color: 'var(--text-h)' }}>Dept:</strong> <span style={{ color: 'var(--text)' }}>{user?.department || 'General'}</span></div>
+            </div>
+          </div>
 
+          {/* Health check query */}
           <button
             onClick={checkBackend}
             disabled={loading}
@@ -88,7 +143,7 @@ function App() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px',
-              transition: 'all 0.2s ease-in-out',
+              transition: 'all 0.2s',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}
           >
@@ -96,7 +151,7 @@ function App() {
               <span>Connecting...</span>
             ) : (
               <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                 </svg>
                 Check Backend
@@ -105,96 +160,53 @@ function App() {
           </button>
 
           {(response || error || loading) && (
-            <div style={{
-              marginTop: '32px',
-              textAlign: 'left',
-              animation: 'fadeIn 0.3s ease-in-out'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: 'var(--text-h)',
-                marginBottom: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '1px'
-              }}>
-                Server Response Status
-              </h3>
-              
-              {loading && (
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  background: 'var(--code-bg)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text)',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: '#eab308',
-                    animation: 'pulse 1.5s infinite'
-                  }}></div>
-                  Pinging backend at http://localhost:5000/ ...
-                </div>
-              )}
-
+            <div style={{ marginTop: '24px', textAlign: 'left' }}>
               {response && (
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  background: 'rgba(34, 197, 94, 0.1)',
-                  border: '1px solid rgba(34, 197, 94, 0.3)',
-                  color: '#22c55e',
-                  fontSize: '14px',
-                  marginBottom: '12px'
+                <div style={{ 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  background: 'rgba(34, 197, 94, 0.1)', 
+                  border: '1px solid rgba(34, 197, 94, 0.3)', 
+                  color: '#22c55e', 
+                  fontSize: '13px' 
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', fontWeight: 'bold' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></div>
-                    SUCCESS (HTTP 200)
-                  </div>
-                  <pre style={{
-                    margin: 0,
-                    fontFamily: 'var(--mono)',
-                    fontSize: '13px',
-                    color: 'var(--text-h)',
-                    overflowX: 'auto'
-                  }}>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>Server Status Response:</strong>
+                  <pre style={{ margin: 0, fontFamily: 'var(--mono)', color: 'var(--text-h)', overflowX: 'auto' }}>
                     {JSON.stringify(response, null, 2)}
                   </pre>
                 </div>
               )}
-
               {error && (
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#ef4444',
-                  fontSize: '14px'
+                <div style={{ 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  background: 'rgba(239, 68, 68, 0.1)', 
+                  border: '1px solid rgba(239, 68, 68, 0.3)', 
+                  color: '#ef4444', 
+                  fontSize: '13px' 
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', fontWeight: 'bold' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></div>
-                    ERROR
-                  </div>
-                  <pre style={{
-                    margin: 0,
-                    fontFamily: 'var(--mono)',
-                    fontSize: '13px',
-                    color: 'var(--text-h)',
-                    overflowX: 'auto',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {typeof error === 'string' ? error : JSON.stringify(error, null, 2)}
-                  </pre>
+                  <strong>Query Error:</strong> {error}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Admin specific display block */}
+          {user?.role === 'admin' && (
+            <div style={{
+              marginTop: '32px',
+              padding: '20px',
+              background: 'var(--accent-bg)',
+              border: '1px dashed var(--accent-border)',
+              borderRadius: '10px',
+              textAlign: 'left'
+            }}>
+              <h3 style={{ margin: '0 0 8px', color: 'var(--accent)', fontSize: '15px', fontWeight: '700' }}>
+                🛡️ Admin Control Panel
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text)', margin: 0, lineHeight: '1.5' }}>
+                This section is conditionally rendered only for users authenticated with the <strong>admin</strong> role.
+              </p>
             </div>
           )}
         </div>
@@ -203,6 +215,31 @@ function App() {
       <div className="ticks"></div>
       <section id="spacer"></section>
     </>
+  );
+}
+
+/**
+ * App Main Entrance
+ * Mounts Router and Auth Context wraps.
+ */
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route 
+            path="/" 
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            } 
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
