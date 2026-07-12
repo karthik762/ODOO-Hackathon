@@ -187,7 +187,7 @@ const AssetForm = ({ initialData, onSubmit, loading, error }) => {
 
         {/* Cost */}
         <div>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Cost ($)</label>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--text-h)', marginBottom: '6px' }}>Cost (₹)</label>
           <input
             type="number"
             name="cost"

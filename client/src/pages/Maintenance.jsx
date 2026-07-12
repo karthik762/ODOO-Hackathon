@@ -365,7 +365,7 @@ export default function Maintenance() {
         <div className="bg-card border rounded-xl p-5 shadow-sm">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">Total Expenditure</span>
           <h3 className="text-3xl font-bold text-foreground">
-            ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            ₹{totalCost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </h3>
         </div>
       </div>
@@ -407,7 +407,7 @@ export default function Maintenance() {
                       <div><strong className="text-foreground">Reported:</strong> <span className="text-muted-foreground">{new Date(ticket.createdAt).toLocaleString()}</span></div>
                       {ticket.status === 'Resolved' && (
                         <>
-                          <div><strong className="text-foreground">Expenditure cost:</strong> <span className="font-semibold text-emerald-500">${ticket.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+                          <div><strong className="text-foreground">Expenditure cost:</strong> <span className="font-semibold text-emerald-500">₹{ticket.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
                           <div><strong className="text-foreground">Resolved:</strong> <span className="text-muted-foreground">{new Date(ticket.resolvedAt).toLocaleString()}</span></div>
                         </>
                       )}
@@ -521,7 +521,7 @@ export default function Maintenance() {
           </DialogHeader>
           <form onSubmit={handleResolveSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Repair Cost ($)</Label>
+              <Label>Repair Cost (₹)</Label>
               <Input
                 type="number"
                 placeholder="e.g. 120.00"

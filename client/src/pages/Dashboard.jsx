@@ -6,7 +6,7 @@ import { StatCard } from '../components/common/StatCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Box, CalendarDays, Wrench, DollarSign, Activity, AlertCircle } from 'lucide-react';
+import { Download, Box, CalendarDays, Wrench, IndianRupee, Activity, AlertCircle } from 'lucide-react';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { toast } from 'react-hot-toast';
 
@@ -118,8 +118,8 @@ export default function Dashboard() {
           />
           <StatCard 
             title="Capital Value" 
-            value={`$${assets.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
-            icon={<DollarSign className="w-4 h-4" />} 
+            value={`₹${assets.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} 
+            icon={<IndianRupee className="w-4 h-4" />} 
           />
           <StatCard 
             title="Total Reservations" 
@@ -131,7 +131,7 @@ export default function Dashboard() {
           />
           <StatCard 
             title="Maintenance Cost" 
-            value={`$${maintenance.cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+            value={`₹${maintenance.cost.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`} 
             icon={<Wrench className="w-4 h-4 text-destructive" />} 
           />
         </div>

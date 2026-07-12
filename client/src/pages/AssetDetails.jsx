@@ -161,7 +161,7 @@ export default function AssetDetails() {
                 </div>
                 <div>
                   <span className="block text-sm font-medium text-muted-foreground mb-1">Purchase Cost</span>
-                  <span className="text-base font-semibold text-foreground">{asset.cost ? `$${asset.cost.toLocaleString()}` : '$0'}</span>
+                  <span className="text-base font-semibold text-foreground">{asset.cost ? `₹${asset.cost.toLocaleString('en-IN')}` : '₹0'}</span>
                 </div>
                 <div>
                   <span className="block text-sm font-medium text-muted-foreground mb-1">Purchase Date</span>
