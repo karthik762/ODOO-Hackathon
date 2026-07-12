@@ -9,6 +9,10 @@ import Register from './pages/Register';
 import Departments from './pages/Departments';
 import Categories from './pages/Categories';
 import Users from './pages/Users';
+import AssetDirectory from './pages/AssetDirectory';
+import AssetDetails from './pages/AssetDetails';
+import RegisterAsset from './pages/RegisterAsset';
+import EditAsset from './pages/EditAsset';
 import api from './services/api';
 import './App.css';
 
@@ -212,6 +216,50 @@ function App() {
                 <RoleRoute allowedRoles={['Admin']}>
                   <Layout>
                     <Users />
+                  </Layout>
+                </RoleRoute>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/assets" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <AssetDirectory />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/assets/new" 
+            element={
+              <PrivateRoute>
+                <RoleRoute allowedRoles={['Admin', 'AssetManager']}>
+                  <Layout>
+                    <RegisterAsset />
+                  </Layout>
+                </RoleRoute>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/assets/:id" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <AssetDetails />
+                </Layout>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/assets/:id/edit" 
+            element={
+              <PrivateRoute>
+                <RoleRoute allowedRoles={['Admin', 'AssetManager']}>
+                  <Layout>
+                    <EditAsset />
                   </Layout>
                 </RoleRoute>
               </PrivateRoute>

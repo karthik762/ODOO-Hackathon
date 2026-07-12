@@ -59,6 +59,31 @@ const Sidebar = () => {
           Dashboard
         </Link>
 
+        <Link 
+          to="/assets" 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: isActive('/assets') || location.pathname.startsWith('/assets') ? 'var(--accent)' : 'var(--text)',
+            background: isActive('/assets') || location.pathname.startsWith('/assets') ? 'var(--accent-bg)' : 'transparent',
+            border: isActive('/assets') || location.pathname.startsWith('/assets') ? '1px solid var(--accent-border)' : '1px solid transparent',
+            transition: 'all 0.2s'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          Assets
+        </Link>
+
         {/* Section title */}
         <div style={{ padding: '16px 16px 8px', fontSize: '11px', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 'bold', letterSpacing: '1px' }}>
           Organization

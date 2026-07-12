@@ -15,6 +15,7 @@ import authRoutes from './routes/authRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import assetRoutes from './routes/assetRoutes.js';
 
 const app = express();
 
@@ -22,12 +23,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Expose public static folder for uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/assets', assetRoutes);
 
 const PORT = process.env.PORT || 5000;
 
