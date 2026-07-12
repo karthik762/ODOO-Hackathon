@@ -16,6 +16,7 @@ import departmentRoutes from './routes/departmentRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/assets', assetRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 const PORT = process.env.PORT || 5000;
 

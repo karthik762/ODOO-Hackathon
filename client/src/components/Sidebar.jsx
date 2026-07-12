@@ -84,6 +84,32 @@ const Sidebar = () => {
           Assets
         </Link>
 
+        <Link 
+          to="/bookings" 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: isActive('/bookings') ? 'var(--accent)' : 'var(--text)',
+            background: isActive('/bookings') ? 'var(--accent-bg)' : 'transparent',
+            border: isActive('/bookings') ? '1px solid var(--accent-border)' : '1px solid transparent',
+            transition: 'all 0.2s'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Bookings
+        </Link>
+
         {/* Section title */}
         <div style={{ padding: '16px 16px 8px', fontSize: '11px', textTransform: 'uppercase', color: 'var(--text)', fontWeight: 'bold', letterSpacing: '1px' }}>
           Organization

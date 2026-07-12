@@ -13,6 +13,7 @@ import AssetDirectory from './pages/AssetDirectory';
 import AssetDetails from './pages/AssetDetails';
 import RegisterAsset from './pages/RegisterAsset';
 import EditAsset from './pages/EditAsset';
+import Bookings from './pages/Bookings';
 import api from './services/api';
 import './App.css';
 
@@ -262,6 +263,16 @@ function App() {
                     <EditAsset />
                   </Layout>
                 </RoleRoute>
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/bookings" 
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Bookings />
+                </Layout>
               </PrivateRoute>
             } 
           />
