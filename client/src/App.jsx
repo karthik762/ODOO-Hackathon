@@ -12,7 +12,7 @@ function App() {
     setError(null);
     setResponse(null);
     try {
-      const res = await axios.get('http://localhost:5000/');
+      const res = await axios.get('http://localhost:5000/api/health');
       setResponse(res.data);
     } catch (err) {
       console.error('Error fetching from backend:', err);

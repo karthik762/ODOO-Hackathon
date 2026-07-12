@@ -9,7 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-import './config/db.js'; // Import to initialize and test the database connection on start
+import './config/db.js'; // Initialize database connection on start
+import healthRoutes from './routes/healthRoutes.js';
 
 const app = express();
 
@@ -17,13 +18,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: "AssetFlow Backend Running"
-  });
-});
+// Routes
+app.use('/api', healthRoutes);
 
 const PORT = process.env.PORT || 5000;
 
